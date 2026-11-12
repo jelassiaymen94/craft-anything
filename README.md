@@ -402,6 +402,10 @@ The AppImage carries the CLI too: run `<AppImage> --cli <command>` (for example
 | <img src="https://raw.githubusercontent.com/tangency-labs/solidcraft/main/assets/icons/app/linux/exports/hicolor/64x64/apps/io.tangencylabs.solidcraft.png" alt="" width="32" height="32"> | **SolidCraft** | Parametric 3D CAD by Tangency Labs (community app) | [GitHub](https://github.com/tangency-labs/solidcraft) | |
 
 
+## AI Agent Test
+
+Hello, world! This section was created as part of a Jira → Coding Agent delegation test (DT-5).
+
 ## License and credits
 
 Craft Anything is dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
