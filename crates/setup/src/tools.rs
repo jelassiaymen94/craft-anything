@@ -25,6 +25,15 @@ pub fn specs() -> Vec<ToolSpec> {
     let changes_apps = Effects::WRITES_FILESYSTEM.union(Effects::EXECUTES_FOREIGN_CODE);
     vec![
         spec(
+            "setup_discover_skills",
+            "Discover agent skills",
+            "List every supported coding-agent app, whether it was found, its skills folder, and whether the Craft Anything skill is missing, current, outdated, or occupied by another skill.",
+            "Finds agent apps and checks their Craft Anything skill.",
+            Effects::READ_ONLY,
+            schema_of::<NoParams>,
+            setup_discover_skills,
+        ),
+        spec(
             "setup_plan",
             "Plan connecting agent apps",
             "What connecting Craft Anything to coding-agent apps (Claude Code, Codex, Cursor…) would change: each config file, the lines that change, and the skill files. Writes nothing.",
@@ -98,6 +107,13 @@ fn the_plan(p: &SetupParams) -> Result<crate::Plan, ToolError> {
     crate::plan(&Host::current(), &req)
 }
 
+fn setup_discover_skills(_ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolError> {
+    let _: NoParams = parse_params(params)?;
+    let skills = crate::skill::discover_skills(&Host::current());
+    let detected = skills.iter().filter(|item| item.client_detected).count();
+    Ok(ToolOutput::Value(json!({"detected_clients": detected, "skills": skills})))
+}
+
 fn setup_plan(_ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolError> {
     let p: SetupParams = parse_params(params)?;
     let plan = the_plan(&p)?;
@@ -133,7 +149,7 @@ mod tests {
     #[test]
     fn setup_tools_are_registered_and_changes_ask_first() {
         let e = Engine::shared(craft_anything_engine::testing::session(), specs());
-        for id in ["setup_plan", "setup_apply", "setup_doctor", "setup_uninstall"] {
+        for id in ["setup_discover_skills", "setup_plan", "setup_apply", "setup_doctor", "setup_uninstall"] {
             assert!(e.registry().get(id).is_some(), "{id}");
         }
         for id in ["setup_apply", "setup_uninstall"] {
@@ -141,5 +157,6 @@ mod tests {
             assert_eq!(err.code, craft_anything_evidence::ErrorCode::ConsentRequired, "{id}");
         }
         assert!(e.call("setup_plan", json!({"nope": 1}), CallOptions::new(Caller::Mcp)).is_err(), "unknown fields refused");
+        assert!(e.call("setup_discover_skills", json!({"nope": 1}), CallOptions::new(Caller::Mcp)).is_err(), "discovery unknown fields refused");
     }
 }

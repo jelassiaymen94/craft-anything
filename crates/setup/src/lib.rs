@@ -24,6 +24,7 @@ pub mod yaml;
 pub use clients::{Client, Format, Host, Os, SERVER_NAME, Shape, clients, is_owned_entry};
 pub use doctor::{Check, CheckStatus, DoctorReport, DoctorRequest, doctor, mcp_self_test};
 pub use plan::{Action, ActionKind, ApplyReport, FileResult, Outcome, Plan, PlanRequest, SkillPlan, UninstallReport, apply, default_command, plan, uninstall};
+pub use skill::{DiscoveredSkill, SkillState, discover_skills};
 
 /// Ids of the clients detected on this host.
 pub fn detected(host: &Host) -> Vec<&'static str> {

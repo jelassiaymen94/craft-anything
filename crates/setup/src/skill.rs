@@ -1,5 +1,6 @@
 //! The skill we install into coding-agent apps: our own guide to the investigation method.
 
+use crate::clients::{Host, clients};
 use craft_anything_evidence::ToolError;
 use serde::Serialize;
 use std::path::{Path, PathBuf};
@@ -29,6 +30,33 @@ pub enum SkillState {
     Outdated,
     /// Something else lives at our path.
     Foreign,
+}
+
+/// The skill location and Craft Anything skill state for one supported coding-agent app.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DiscoveredSkill {
+    pub client: &'static str,
+    pub display: &'static str,
+    pub client_detected: bool,
+    pub skills_dir: PathBuf,
+    pub state: SkillState,
+}
+
+/// Discover every supported app's skills location without changing the filesystem.
+///
+/// Undetected clients are included so callers can distinguish an unsupported app from a supported
+/// app that is not installed. Several clients can intentionally share the same skills directory.
+pub fn discover_skills(host: &Host) -> Vec<DiscoveredSkill> {
+    clients(host)
+        .into_iter()
+        .map(|client| DiscoveredSkill {
+            client: client.id,
+            display: client.display,
+            client_detected: client.detected(),
+            state: inspect(&client.skills_dir),
+            skills_dir: client.skills_dir,
+        })
+        .collect()
 }
 
 /// What's installed in one skills directory.
@@ -198,5 +226,24 @@ mod tests {
         assert_eq!(inspect(dir.path()), SkillState::Foreign);
         assert!(uninstall(dir.path()).is_empty());
         assert!(p.exists());
+    }
+
+    #[test]
+    fn discovery_reports_detected_clients_and_shared_skill_state() {
+        let home = tempfile::tempdir().unwrap();
+        let host = Host::with_home(home.path());
+        std::fs::create_dir_all(home.path().join(".claude")).unwrap();
+        install(&host.shared_skills()).unwrap();
+
+        let found = discover_skills(&host);
+        let claude = found.iter().find(|item| item.client == "claude_code").unwrap();
+        assert!(claude.client_detected);
+        assert_eq!(claude.skills_dir, home.path().join(".claude/skills"));
+        assert_eq!(claude.state, SkillState::Missing);
+
+        let codex = found.iter().find(|item| item.client == "codex").unwrap();
+        assert!(!codex.client_detected);
+        assert_eq!(codex.skills_dir, host.shared_skills());
+        assert_eq!(codex.state, SkillState::Current);
     }
 }
